@@ -1,3 +1,5 @@
+;; sustainable development of Agricultural and pastoral areas
+
 breed [people person] ;; sheep is its own plural: we use "a-sheep" as the singular.
 breed [cows cow]
 
@@ -5,7 +7,7 @@ globals [
   attendance        ;; the current attendance at the bar
   history           ;; list of past values of attendance
   agr-patches     ;; agentset of green patches representing the residential area
-  hun-patches       ;; agentset of blue patches representing the bar area
+  pas-patches       ;; agentset of blue patches representing the bar area
   ;; crowded-patch     ;; patch where we show the "CROWDED" label
 ]
 
@@ -14,11 +16,12 @@ turtles-own [
   best-strategy   ;; index of the current best strategy
   attend?         ;; true if the agent currently plans to attend the bar
   prediction      ;; current prediction of the bar attendance
+  value           ;; value of each production
 ]
 
 to setup
   clear-all
-  set-default-shape people "person"
+  set-default-shape people "plant"
   set-default-shape cows "cow"
 
   ;; create the 'homes'
@@ -26,8 +29,8 @@ to setup
   ask agr-patches[ set pcolor green ]
 
   ;; create the 'bar'
-  set hun-patches patches with [pxcor > 0 and pycor < 0 or (pxcor < 0 and pycor > 0 )]
-  ask hun-patches [ set pcolor blue ]
+  set pas-patches patches with [pxcor > 0 and pycor < 0 or (pxcor < 0 and pycor > 0 )]
+  ask pas-patches [ set pcolor blue ]
 
   ;; initialize the previous attendance randomly so the agents have a history
   ;; to work with from the start
@@ -49,17 +52,21 @@ to setup
   ;; can change which of this "bag of strategies" they use every tick
   create-people 100 [
     set color brown
-    move-to-empty-one-of agr-patches
+    set size 1.5
+    set value 5 + 5 * random 2
     set strategies n-values number-strategies [random-strategy]
     set best-strategy first strategies
+    move-to-empty-one-of agr-patches
     update-strategies
   ]
-  
+
   create-cows 100 [
     set color yellow
-    move-to-empty-one-of hun-patches
+    set size 1.2
+    set value 10 + 10 * random 3
     set strategies n-values number-strategies [random-strategy]
     set best-strategy first strategies
+    move-to-empty-one-of pas-patches
     update-strategies
   ]
 
@@ -77,15 +84,27 @@ to go
     set attend? (prediction <= overcrowding-threshold)  ;; true or false
   ]
   ;; depending on their decision, the agents go to the bar or stay at home
-  ask turtles [
+  ask people [
     ifelse attend?
-      [ move-to-empty-one-of hun-patches
+      [ move-to-empty-one-of pas-patches
         set attendance attendance + 1 ]
-      [ move-to-empty-one-of agr-patches]
+      [ ;;move-to-empty-one-of agr-patches
+      ]
+      set value value - 1
+    
+  ]
+
+  ask cows [
+    ifelse attend?
+      [ move-to-empty-one-of agr-patches
+        set attendance attendance + 1 ]
+      [ ;;move-to-empty-one-of pas-patches
+      ]
+      set value value - 2
   ]
 
   ;; if the bar is crowded indicate that in the view
-  set attendance count turtles-on hun-patches
+  set attendance count turtles-on pas-patches
   ;;if attendance > overcrowding-threshold [
   ;;  ask crowded-patch [ set plabel "CROWDED" ]
   ;;]
@@ -138,7 +157,7 @@ end
 ;; a(t) is the weight for time t, c is a constant, and MEMORY-SIZE is an external parameter.
 to-report predict-attendance [strategy subhistory]
   ;; the first element of the strategy is the constant, c, in the prediction formula.
-  ;; one can think of it as the the agent's prediction of the bar's attendance
+  ;; one can think of it as the agent's prediction of the bar's attendance
   ;; in the absence of any other data
   ;; then we multiply each week in the history by its respective weight
   report 100 * first strategy + sum (map [ [weight week] -> weight * week ] butfirst strategy subhistory)
@@ -157,5 +176,5 @@ to move-to-empty-one-of [locations]  ;; turtle procedure
 end
 
 
-; Copyright 2023 Lyn.
-; See Info tab for full copyright and license(will be added).
+; Copyright 2007 Uri Wilensky.
+; See Info tab for full copyright and license.
